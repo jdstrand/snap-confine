@@ -21,6 +21,13 @@
 #include "cleanup-funcs.h"
 */
 
+/* temporary */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+/* temporary */
+
+#include <limits.h>
 #include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +35,10 @@
 #include <unistd.h>
 
 /* temporary */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdarg.h>
 #include <errno.h>
 void die(const char *msg, ...)
@@ -138,7 +149,7 @@ int main(int argc, char *argv[])
 
 	// verify file exists under /sys
 	char *sys_path = "/sys";
-	char sys_devpath[strlen(sys_path) + strlen(devpath) + 1];
+	char sys_devpath[PATH_MAX];
 	must_snprintf(sys_devpath, sizeof(sys_devpath), "%s%s", sys_path,
 		      devpath);
 	if (access(sys_devpath, F_OK) != 0)
@@ -158,37 +169,34 @@ int main(int argc, char *argv[])
 
 	// Build up the cgroup name in /sys/fs
 	char *cgroup_top = "/sys/fs/cgroup/devices/";
-	char cgroup_path[strlen(cgroup_top) + strlen(sectag) + 1];
-	must_snprintf(cgroup_path, sizeof(cgroup_path), "%s%s", cgroup_top,
+	char cgroup_name[PATH_MAX];
+	must_snprintf(cgroup_name, sizeof(cgroup_name), "%s%s", cgroup_top,
 		      sectag);
-	for (int i = strlen(cgroup_top); i < strlen(cgroup_path); i++)
-		if (cgroup_path[i] == '.')
-			cgroup_path[i] = '_';
+	for (int i = strlen(cgroup_top); i < strlen(cgroup_name); i++)
+		if (cgroup_name[i] == '.')
+			cgroup_name[i] = '_';
 
 	char type = 'c';
 	if (is_block(devpath))
 		type = 'b';
 
 	char *perms = "rwm";
-	char acl[strlen(majmin) + strlen(perms) + 4];	// '<type> <majmin> <perms>\0'
+	// '<type> <majmin> <perms>\0'
+	char acl[strlen(majmin) + strlen(perms) + 4];
 	must_snprintf(acl, sizeof(acl), "%c %s %s", type, majmin, perms);
 
-	printf("ACTION=%s\nSECTAG=%s\nDEVPATH=%s\nMAJMIN=%s\n", action, sectag,
-	       devpath, majmin);
-	printf("cgroup_path=%s\nsys_devpath=%s\ntype=%c\nacl=%s\n", cgroup_path,
-	       sys_devpath, type, acl);
+	char cgroup_path[PATH_MAX];
+	if (strcmp(action, "add") == 0 || strcmp(action, "change") == 0)
+		must_snprintf(cgroup_path, sizeof(cgroup_path), "%s%s",
+			      cgroup_name, "/devices.allow");
+	else
+		must_snprintf(cgroup_path, sizeof(cgroup_path), "%s%s",
+			      cgroup_name, "/devices.deny");
 
-	if (strcmp(action, "add") == 0 || strcmp(action, "change") == 0) {
-		char *bn = "/devices.allow";
-		char fn[strlen(cgroup_path) + strlen(bn) + 1];
-		must_snprintf(fn, sizeof(fn), "%s%s", cgroup_path, bn);
-		printf("write_string_to_file(%s, %s)\n", fn, acl);
-	} else {
-		char *bn = "/devices.deny";
-		char fn[strlen(cgroup_path) + strlen(bn) + 1];
-		must_snprintf(fn, sizeof(fn), "%s%s", cgroup_path, bn);
-		printf("write_string_to_file(%s, %s)\n", fn, acl);
-	}
+	if (secure_getenv("SNAPPY_LAUNCHER_INSIDE_TESTS") == NULL)
+		write_string_to_file(cgroup_path, acl);
+	else
+		printf("%s %s\n", cgroup_path, acl);
 
 	return 0;
 }
