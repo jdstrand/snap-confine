@@ -27,7 +27,6 @@
 #include <string.h>
 #include <unistd.h>
 
-
 /* temporary */
 #include <stdarg.h>
 #include <errno.h>
@@ -86,7 +85,7 @@ int must_snprintf(char *str, size_t size, const char *format, ...)
 
 void sc_cleanup_string(char **ptr)
 {
-		free(*ptr);
+	free(*ptr);
 }
 
 void write_string_to_file(const char *filepath, const char *buf)
@@ -106,8 +105,7 @@ void write_string_to_file(const char *filepath, const char *buf)
 
 bool is_block(const char *devpath)
 {
-	const char *block_re =
-	    "^/.+/block/.+$";
+	const char *block_re = "^/.+/block/.+$";
 	regex_t re;
 	if (regcomp(&re, block_re, REG_EXTENDED | REG_NOSUB) != 0)
 		die("can not compile regex %s", block_re);
@@ -122,7 +120,7 @@ int main(int argc, char *argv[])
 {
 	if (argc < 5)
 		die("Usage: %s <action> <sectag> <devpath> <major:minor>",
-	   	    argv[0]);
+		    argv[0]);
 
 	const char *action = argv[1];
 	const char *sectag = argv[2];
@@ -130,7 +128,8 @@ int main(int argc, char *argv[])
 	const char *majmin = argv[4];
 
 	// verify action
-	if (strcmp(action, "add") != 0 && strcmp(action, "change") != 0 && strcmp(action, "remove") != 0)
+	if (strcmp(action, "add") != 0 && strcmp(action, "change") != 0
+	    && strcmp(action, "remove") != 0)
 		die("action must be one of 'add', 'change' or 'remove'");
 
 	// verify sectag
@@ -140,7 +139,8 @@ int main(int argc, char *argv[])
 	// verify file exists under /sys
 	char *sys_path = "/sys";
 	char sys_devpath[strlen(sys_path) + strlen(devpath) + 1];
-	must_snprintf(sys_devpath, sizeof(sys_devpath), "%s%s", sys_path, devpath);
+	must_snprintf(sys_devpath, sizeof(sys_devpath), "%s%s", sys_path,
+		      devpath);
 	if (access(sys_devpath, F_OK) != 0)
 		die("devpath does not exist under /sys");
 
@@ -159,8 +159,9 @@ int main(int argc, char *argv[])
 	// Build up the cgroup name in /sys/fs
 	char *cgroup_top = "/sys/fs/cgroup/devices/";
 	char cgroup_path[strlen(cgroup_top) + strlen(sectag) + 1];
-	must_snprintf(cgroup_path, sizeof(cgroup_path), "%s%s", cgroup_top, sectag);
-	for (int i=strlen(cgroup_top); i < strlen(cgroup_path); i++)
+	must_snprintf(cgroup_path, sizeof(cgroup_path), "%s%s", cgroup_top,
+		      sectag);
+	for (int i = strlen(cgroup_top); i < strlen(cgroup_path); i++)
 		if (cgroup_path[i] == '.')
 			cgroup_path[i] = '_';
 
@@ -169,11 +170,13 @@ int main(int argc, char *argv[])
 		type = 'b';
 
 	char *perms = "rwm";
-	char acl[strlen(majmin) + strlen(perms) + 4]; // '<type> <majmin> <perms>\0'
+	char acl[strlen(majmin) + strlen(perms) + 4];	// '<type> <majmin> <perms>\0'
 	must_snprintf(acl, sizeof(acl), "%c %s %s", type, majmin, perms);
 
-	printf("ACTION=%s\nSECTAG=%s\nDEVPATH=%s\nMAJMIN=%s\n", action, sectag, devpath, majmin);
-	printf("cgroup_path=%s\nsys_devpath=%s\ntype=%c\nacl=%s\n", cgroup_path, sys_devpath, type, acl);
+	printf("ACTION=%s\nSECTAG=%s\nDEVPATH=%s\nMAJMIN=%s\n", action, sectag,
+	       devpath, majmin);
+	printf("cgroup_path=%s\nsys_devpath=%s\ntype=%c\nacl=%s\n", cgroup_path,
+	       sys_devpath, type, acl);
 
 	if (strcmp(action, "add") == 0 || strcmp(action, "change") == 0) {
 		char *bn = "/devices.allow";
@@ -186,7 +189,6 @@ int main(int argc, char *argv[])
 		must_snprintf(fn, sizeof(fn), "%s%s", cgroup_path, bn);
 		printf("write_string_to_file(%s, %s)\n", fn, acl);
 	}
-
 
 	return 0;
 }
