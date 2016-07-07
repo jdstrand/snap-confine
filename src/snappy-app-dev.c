@@ -15,17 +15,10 @@
  *
  */
 
-/* #include "config.h"
+#include "config.h"
 #include "utils.h"
 #include "snap.h"
 #include "cleanup-funcs.h"
-*/
-
-/* temporary */
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-/* temporary */
 
 #include <limits.h>
 #include <regex.h>
@@ -33,82 +26,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-/* temporary */
-#include <stdarg.h>
-#include <errno.h>
-void die(const char *msg, ...)
-{
-	va_list va;
-	va_start(va, msg);
-	vfprintf(stderr, msg, va);
-	va_end(va);
-
-	if (errno != 0) {
-		perror(". errmsg");
-	} else {
-		fprintf(stderr, "\n");
-	}
-	exit(1);
-}
-
-#include <stdbool.h>
-#include <stddef.h>
-bool verify_security_tag(const char *security_tag)
-{
-	// The executable name is of form:
-	// snap.<name>.(<appname>|hook.<hookname>)
-	// - <name> must start with lowercase letter, then may contain
-	//   lowercase alphanumerics and '-'
-	// - <appname> may contain alphanumerics and '-'
-	// - <hookname must start with a lowercase letter, then may
-	//   contain lowercase letters and '-'
-	const char *whitelist_re =
-	    "^snap\\.[a-z](-?[a-z0-9])*\\.([a-zA-Z0-9](-?[a-zA-Z0-9])*|hook\\.[a-z](-?[a-z])*)$";
-	regex_t re;
-	if (regcomp(&re, whitelist_re, REG_EXTENDED | REG_NOSUB) != 0)
-		die("can not compile regex %s", whitelist_re);
-
-	int status = regexec(&re, security_tag, 0, NULL, 0);
-	regfree(&re);
-
-	return (status == 0);
-}
-
-int must_snprintf(char *str, size_t size, const char *format, ...)
-{
-	int n = -1;
-
-	va_list va;
-	va_start(va, format);
-	n = vsnprintf(str, size, format, va);
-	va_end(va);
-
-	if (n < 0 || n >= size)
-		die("failed to snprintf %s", str);
-
-	return n;
-}
-
-void sc_cleanup_string(char **ptr)
-{
-	free(*ptr);
-}
-
-void write_string_to_file(const char *filepath, const char *buf)
-{
-	FILE *f = fopen(filepath, "w");
-	if (f == NULL)
-		die("fopen %s failed", filepath);
-	if (fwrite(buf, strlen(buf), 1, f) != 1)
-		die("fwrite failed");
-	if (fflush(f) != 0)
-		die("fflush failed");
-	if (fclose(f) != 0)
-		die("fclose failed");
-}
-
-/* end temporary */
 
 bool is_block(const char *devpath)
 {
