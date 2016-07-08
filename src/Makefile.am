@@ -1,4 +1,4 @@
-libexec_PROGRAMS = snap-confine
+libexec_PROGRAMS = snap-confine snappy-app-dev
 noinst_PROGRAMS = snap-confine-unit-tests
 snap_confine_SOURCES = \
 	main.c \
@@ -55,6 +55,18 @@ snap_confine_unit_tests_CFLAGS = $(snap_confine_CFLAGS) $(GLIB_CFLAGS)
 snap_confine_unit_tests_LDADD = $(snap_confine_LDADD) $(GLIB_LIBS)
 snap_confine_unit_tests_LDFLAGS = $(snap_confine_LDFLAGS)
 
+snappy_app_dev_CFLAGS = -Wall -Werror $(AM_CFLAGS)
+snappy_app_dev_LDFLAGS = $(AM_LDFLAGS)
+
+snappy_app_dev_SOURCES = \
+	utils.c \
+	utils.h \
+	snap.c \
+	snap.h \
+	cleanup-funcs.c \
+	cleanup-funcs.h \
+	snappy-app-dev.c
+
 # Force particular coding style on all source and header files.
 .PHONY: check-syntax
 check-syntax:
@@ -83,7 +95,7 @@ fmt:
 	       indent -linux "$$f"; \
 	done;
 
-EXTRA_DIST = 80-snappy-assign.rules snappy-app-dev
+EXTRA_DIST = 80-snappy-assign.rules
 
 # NOTE: This makes distcheck fail but it is required for udev, so go figure.
 # http://www.gnu.org/software/automake/manual/automake.html#Hard_002dCoded-Install-Paths
@@ -94,12 +106,14 @@ install-data-local:
 	install -m 644 $(srcdir)/80-snappy-assign.rules $(DESTDIR)$(shell pkg-config udev --variable=udevdir)/rules.d
 
 # Install support script for udev rules
-install-exec-local:
-	install -d -m 755 $(DESTDIR)$(shell pkg-config udev --variable=udevdir)
-	install -m 755 $(srcdir)/snappy-app-dev $(DESTDIR)$(shell pkg-config udev --variable=udevdir)
+#install-exec-local:
+#	install -d -m 755 $(DESTDIR)$(shell pkg-config udev --variable=udevdir)
+#	mv -f $(DESTDIR)$(bindir)/snappy-app-dev $(DESTDIR)$(shell pkg-config udev --variable=udevdir)
 
 # Ensure that snap-confine is +s (setuid)
 install-exec-hook:
 	chmod 4755 $(DESTDIR)$(libexecdir)/snap-confine
 	install -d -m 755 $(DESTDIR)$(bindir)
 	ln -sf $(libexecdir)/snap-confine $(DESTDIR)$(bindir)/ubuntu-core-launcher
+	install -d -m 755 $(DESTDIR)$(shell pkg-config udev --variable=udevdir)
+	mv -f $(DESTDIR)$(libexecdir)/snappy-app-dev $(DESTDIR)$(shell pkg-config udev --variable=udevdir)
